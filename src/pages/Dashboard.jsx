@@ -1,4 +1,4 @@
-function Dashboard({ user }) {
+function Dashboard({ user, openQuestions }) {
   return (
     <div style={{ textAlign: "center" }}>
       <h1>Dashboard</h1>
@@ -10,15 +10,18 @@ function Dashboard({ user }) {
           display: "flex",
           gap: "20px",
           marginTop: "30px",
+          justifyContent: "center"
         }}
       >
         <div
+          onClick={openQuestions}
           style={{
             backgroundColor: "white",
             padding: "20px",
             borderRadius: "10px",
             width: "180px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+            cursor: "pointer",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
           }}
         >
           <h3>Questions</h3>
@@ -31,7 +34,7 @@ function Dashboard({ user }) {
             padding: "20px",
             borderRadius: "10px",
             width: "180px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
           }}
         >
           <h3>Progress</h3>
@@ -44,7 +47,7 @@ function Dashboard({ user }) {
             padding: "20px",
             borderRadius: "10px",
             width: "180px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
           }}
         >
           <h3>Mock Interview</h3>
