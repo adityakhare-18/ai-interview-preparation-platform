@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import {
   collection,
@@ -8,7 +8,11 @@ import {
   where
 } from "firebase/firestore";
 
-import { db } from "./firebase";
+import {
+  onAuthStateChanged
+} from "firebase/auth";
+
+import { db, auth } from "./firebase";
 
 import Login from "./components/Login";
 import Dashboard from "./pages/Dashboard";
@@ -21,6 +25,9 @@ import History from "./pages/History";
 
 function App() {
   const [user, setUser] = useState("");
+
+  const [authLoading, setAuthLoading] =
+    useState(true);
 
   const [currentPage, setCurrentPage] =
     useState("dashboard");
@@ -46,22 +53,13 @@ function App() {
   const [history, setHistory] =
     useState([]);
 
-  const handleLogin = async (
-    email
-  ) => {
-    setUser(email);
-
+  const handleLogin = async (email) => {
     try {
+      setUser(email);
+
       const q = query(
-        collection(
-          db,
-          "interviews"
-        ),
-        where(
-          "user",
-          "==",
-          email
-        )
+        collection(db, "interviews"),
+        where("user", "==", email)
       );
 
       const snapshot =
@@ -83,14 +81,33 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    const unsubscribe =
+      onAuthStateChanged(
+        auth,
+        async (currentUser) => {
+          try {
+            if (currentUser) {
+              await handleLogin(
+                currentUser.email
+              );
+            }
+          } catch (error) {
+            console.error(error);
+          } finally {
+            setAuthLoading(false);
+          }
+        }
+      );
+
+    return () => unsubscribe();
+  }, []);
+
   const startInterview = (
     question
   ) => {
     setSelectedQuestion(question);
-
-    setCurrentPage(
-      "interview"
-    );
+    setCurrentPage("interview");
   };
 
   const submitAnswer = async (
@@ -125,9 +142,7 @@ function App() {
           ? Number(scoreMatch[1])
           : 0;
 
-      setScore(
-        extractedScore
-      );
+      setScore(extractedScore);
 
       setFeedback(result);
 
@@ -135,10 +150,8 @@ function App() {
         user,
         question,
         answer,
-        score:
-          extractedScore,
-        createdAt:
-          new Date()
+        score: extractedScore,
+        createdAt: new Date()
       };
 
       await addDoc(
@@ -163,10 +176,7 @@ function App() {
       );
     } catch (error) {
       console.error(error);
-
-      alert(
-        error.message
-      );
+      alert(error.message);
     } finally {
       setLoading(false);
     }
@@ -174,15 +184,34 @@ function App() {
 
   const handleLogout = () => {
     setUser("");
-
     setHistory([]);
-
     setInterviewCount(0);
-
     setCurrentPage(
       "dashboard"
     );
   };
+
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent:
+            "center",
+          alignItems:
+            "center",
+          background:
+            "linear-gradient(to right, #4f46e5, #7c3aed)",
+          color: "white"
+        }}
+      >
+        <h1>
+          Loading...
+        </h1>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -222,10 +251,7 @@ function App() {
     );
   }
 
-  if (
-    currentPage ===
-    "questions"
-  ) {
+  if (currentPage === "questions") {
     return (
       <Questions
         startInterview={
@@ -240,10 +266,7 @@ function App() {
     );
   }
 
-  if (
-    currentPage ===
-    "interview"
-  ) {
+  if (currentPage === "interview") {
     return (
       <Interview
         question={
@@ -261,9 +284,7 @@ function App() {
     );
   }
 
-  if (
-    currentPage === "mock"
-  ) {
+  if (currentPage === "mock") {
     return (
       <MockInterview
         submitAnswer={
@@ -278,22 +299,15 @@ function App() {
     );
   }
 
-  if (
-    currentPage ===
-    "feedback"
-  ) {
+  if (currentPage === "feedback") {
     return (
       <Feedback
-        answer={
-          userAnswer
-        }
+        answer={userAnswer}
         selectedQuestion={
           selectedQuestion
         }
         score={score}
-        feedback={
-          feedback
-        }
+        feedback={feedback}
         goDashboard={() =>
           setCurrentPage(
             "dashboard"
@@ -303,10 +317,7 @@ function App() {
     );
   }
 
-  if (
-    currentPage ===
-    "progress"
-  ) {
+  if (currentPage === "progress") {
     return (
       <Progress
         interviewCount={
@@ -321,10 +332,7 @@ function App() {
     );
   }
 
-  if (
-    currentPage ===
-    "history"
-  ) {
+  if (currentPage === "history") {
     return (
       <History
         history={history}
