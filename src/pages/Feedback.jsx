@@ -1,66 +1,22 @@
 function Feedback({
   answer,
   selectedQuestion,
+  score,
+  feedback,
   goDashboard
 }) {
-  const answers = {
-    "What is React?": [
-      "javascript",
-      "library",
-      "ui",
-      "components"
-    ],
-
-    "What is Virtual DOM?": [
-      "virtual",
-      "dom",
-      "real",
-      "faster"
-    ],
-
-    "What is a Linked List?": [
-      "node",
-      "data",
-      "structure",
-      "linked"
-    ],
-
-    "What is a REST API?": [
-      "api",
-      "http",
-      "client",
-      "server"
-    ]
-  };
-
-  const keywords =
-    answers[selectedQuestion] || [];
-
-  const userAnswer =
-    answer.toLowerCase();
-
-  let matches = 0;
-
-  keywords.forEach((word) => {
-    if (userAnswer.includes(word)) {
-      matches++;
-    }
-  });
-
-  let score = 0;
-
-  if (matches === 0) {
-    score = 0;
-  } else if (matches <= 2) {
-    score = 5;
-  } else if (matches === 3) {
-    score = 8;
-  } else {
-    score = 10;
-  }
+  const cleanFeedback = feedback
+    .replace(/Score:\s*\d+\/10/i, "")
+    .replace(/Feedback:/i, "")
+    .trim();
 
   return (
-    <div style={{ padding: "30px" }}>
+    <div
+      style={{
+        padding: "30px",
+        textAlign: "center"
+      }}
+    >
       <h1>AI Feedback</h1>
 
       <h3>Question</h3>
@@ -70,6 +26,24 @@ function Feedback({
       <p>{answer}</p>
 
       <h2>Score: {score}/10</h2>
+
+      <h3>Feedback</h3>
+
+      <div
+        style={{
+          background: "#f4f4f4",
+          padding: "20px",
+          borderRadius: "10px",
+          maxWidth: "800px",
+          margin: "0 auto",
+          textAlign: "left",
+          lineHeight: "1.6"
+        }}
+      >
+        {cleanFeedback}
+      </div>
+
+      <br />
 
       <button onClick={goDashboard}>
         Back To Dashboard

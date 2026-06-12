@@ -1,4 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where
+} from "firebase/firestore";
+
+import { db } from "./firebase";
 
 import Login from "./components/Login";
 import Dashboard from "./pages/Dashboard";
@@ -21,141 +31,307 @@ function App() {
   const [userAnswer, setUserAnswer] =
     useState("");
 
-  const [interviewCount, setInterviewCount] =
-    useState(() => {
-      const saved =
-        localStorage.getItem("interviewCount");
+  const [feedback, setFeedback] =
+    useState("");
 
-      return saved ? Number(saved) : 0;
-    });
+  const [score, setScore] =
+    useState(0);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [interviewCount, setInterviewCount] =
+    useState(0);
 
   const [history, setHistory] =
-    useState(() => {
-      const saved =
-        localStorage.getItem("history");
+    useState([]);
 
-      return saved
-        ? JSON.parse(saved)
-        : [];
-    });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "interviewCount",
-      interviewCount
-    );
-  }, [interviewCount]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "history",
-      JSON.stringify(history)
-    );
-  }, [history]);
-
-  const handleLogin = (email) => {
+  const handleLogin = async (
+    email
+  ) => {
     setUser(email);
+
+    try {
+      const q = query(
+        collection(
+          db,
+          "interviews"
+        ),
+        where(
+          "user",
+          "==",
+          email
+        )
+      );
+
+      const snapshot =
+        await getDocs(q);
+
+      const records =
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+      setHistory(records);
+
+      setInterviewCount(
+        records.length
+      );
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const startInterview = (question) => {
+  const startInterview = (
+    question
+  ) => {
     setSelectedQuestion(question);
-    setCurrentPage("interview");
+
+    setCurrentPage(
+      "interview"
+    );
   };
 
-  const submitAnswer = (answer) => {
-    setUserAnswer(answer);
+  const submitAnswer = async (
+    answer,
+    question = selectedQuestion
+  ) => {
+    try {
+      setLoading(true);
 
-    setInterviewCount(
-      (prev) => prev + 1
+      setUserAnswer(answer);
+
+      setSelectedQuestion(
+        question
+      );
+
+      const { getFeedback } =
+        await import("./gemini");
+
+      const result =
+        await getFeedback(
+          question,
+          answer
+        );
+
+      const scoreMatch =
+        result.match(
+          /Score:\s*(\d+)/i
+        );
+
+      const extractedScore =
+        scoreMatch
+          ? Number(scoreMatch[1])
+          : 0;
+
+      setScore(
+        extractedScore
+      );
+
+      setFeedback(result);
+
+      const newRecord = {
+        user,
+        question,
+        answer,
+        score:
+          extractedScore,
+        createdAt:
+          new Date()
+      };
+
+      await addDoc(
+        collection(
+          db,
+          "interviews"
+        ),
+        newRecord
+      );
+
+      setHistory((prev) => [
+        newRecord,
+        ...prev
+      ]);
+
+      setInterviewCount(
+        (prev) => prev + 1
+      );
+
+      setCurrentPage(
+        "feedback"
+      );
+    } catch (error) {
+      console.error(error);
+
+      alert(
+        error.message
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setUser("");
+
+    setHistory([]);
+
+    setInterviewCount(0);
+
+    setCurrentPage(
+      "dashboard"
     );
-
-    const score = answer.trim()
-      ? 10
-      : 0;
-
-    const newRecord = {
-      question: selectedQuestion,
-      answer: answer,
-      score: score
-    };
-
-    setHistory((prev) => [
-      newRecord,
-      ...prev
-    ]);
-
-    setCurrentPage("feedback");
   };
 
   if (!user) {
     return (
-      <Login onLogin={handleLogin} />
-    );
-  }
-
-  if (currentPage === "questions") {
-    return (
-      <Questions
-        startInterview={startInterview}
-        goDashboard={() =>
-          setCurrentPage("dashboard")
+      <Login
+        onLogin={
+          handleLogin
         }
       />
     );
   }
 
-  if (currentPage === "interview") {
+  if (loading) {
     return (
-      <Interview
-        question={selectedQuestion}
-        submitAnswer={submitAnswer}
+      <div
+        style={{
+          minHeight:
+            "100vh",
+          display: "flex",
+          flexDirection:
+            "column",
+          justifyContent:
+            "center",
+          alignItems:
+            "center"
+        }}
+      >
+        <h1>
+          🤖 AI is analyzing
+          your answer...
+        </h1>
+
+        <p>
+          Please wait a few
+          seconds.
+        </p>
+      </div>
+    );
+  }
+
+  if (
+    currentPage ===
+    "questions"
+  ) {
+    return (
+      <Questions
+        startInterview={
+          startInterview
+        }
+        goDashboard={() =>
+          setCurrentPage(
+            "dashboard"
+          )
+        }
       />
     );
   }
 
-  if (currentPage === "feedback") {
+  if (
+    currentPage ===
+    "interview"
+  ) {
+    return (
+      <Interview
+        question={
+          selectedQuestion
+        }
+        submitAnswer={
+          submitAnswer
+        }
+        goBack={() =>
+          setCurrentPage(
+            "questions"
+          )
+        }
+      />
+    );
+  }
+
+  if (
+    currentPage === "mock"
+  ) {
+    return (
+      <MockInterview
+        submitAnswer={
+          submitAnswer
+        }
+        goBack={() =>
+          setCurrentPage(
+            "dashboard"
+          )
+        }
+      />
+    );
+  }
+
+  if (
+    currentPage ===
+    "feedback"
+  ) {
     return (
       <Feedback
-        answer={userAnswer}
+        answer={
+          userAnswer
+        }
         selectedQuestion={
           selectedQuestion
         }
+        score={score}
+        feedback={
+          feedback
+        }
         goDashboard={() =>
-          setCurrentPage("dashboard")
+          setCurrentPage(
+            "dashboard"
+          )
         }
       />
     );
   }
 
-  if (currentPage === "progress") {
+  if (
+    currentPage ===
+    "progress"
+  ) {
     return (
       <Progress
         interviewCount={
           interviewCount
         }
         goDashboard={() =>
-          setCurrentPage("dashboard")
+          setCurrentPage(
+            "dashboard"
+          )
         }
       />
     );
   }
 
-  if (currentPage === "mock") {
-    return (
-      <MockInterview
-        submitAnswer={
-          submitAnswer
-        }
-      />
-    );
-  }
-
-  if (currentPage === "history") {
+  if (
+    currentPage ===
+    "history"
+  ) {
     return (
       <History
         history={history}
         goDashboard={() =>
-          setCurrentPage("dashboard")
+          setCurrentPage(
+            "dashboard"
+          )
         }
       />
     );
@@ -164,18 +340,32 @@ function App() {
   return (
     <Dashboard
       user={user}
-      interviewCount={interviewCount}
+      interviewCount={
+        interviewCount
+      }
+      history={history}
       openQuestions={() =>
-        setCurrentPage("questions")
+        setCurrentPage(
+          "questions"
+        )
       }
       openProgress={() =>
-        setCurrentPage("progress")
+        setCurrentPage(
+          "progress"
+        )
       }
       openMockInterview={() =>
-        setCurrentPage("mock")
+        setCurrentPage(
+          "mock"
+        )
       }
       openHistory={() =>
-        setCurrentPage("history")
+        setCurrentPage(
+          "history"
+        )
+      }
+      onLogout={
+        handleLogout
       }
     />
   );
