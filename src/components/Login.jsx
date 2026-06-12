@@ -15,6 +15,13 @@ function Login({ onLogin }) {
     useState("");
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      alert(
+        "Please enter email and password."
+      );
+      return;
+    }
+
     try {
       const userCredential =
         await signInWithEmailAndPassword(
@@ -27,11 +34,34 @@ function Login({ onLogin }) {
         userCredential.user.email
       );
     } catch (error) {
-      alert(error.message);
+      if (
+        error.code ===
+        "auth/invalid-credential"
+      ) {
+        alert(
+          "Invalid email or password."
+        );
+      } else {
+        alert(error.message);
+      }
     }
   };
 
   const handleSignup = async () => {
+    if (!email || !password) {
+      alert(
+        "Please enter email and password."
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      alert(
+        "Password must be at least 6 characters."
+      );
+      return;
+    }
+
     try {
       const userCredential =
         await createUserWithEmailAndPassword(
@@ -40,11 +70,31 @@ function Login({ onLogin }) {
           password
         );
 
+      alert(
+        "Account created successfully!"
+      );
+
       onLogin(
         userCredential.user.email
       );
     } catch (error) {
-      alert(error.message);
+      if (
+        error.code ===
+        "auth/email-already-in-use"
+      ) {
+        alert(
+          "This email is already registered."
+        );
+      } else if (
+        error.code ===
+        "auth/invalid-email"
+      ) {
+        alert(
+          "Please enter a valid email."
+        );
+      } else {
+        alert(error.message);
+      }
     }
   };
 
@@ -69,20 +119,22 @@ function Login({ onLogin }) {
         }}
       >
         <h1
-  style={{
-    fontSize: "32px",
-    marginBottom: "30px"
-  }}
->
-  AI Interview Platform
-</h1>
+          style={{
+            fontSize: "32px",
+            marginBottom: "30px"
+          }}
+        >
+          AI Interview Platform
+        </h1>
 
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) =>
-            setEmail(e.target.value)
+            setEmail(
+              e.target.value
+            )
           }
           style={{
             width: "100%",
@@ -96,7 +148,9 @@ function Login({ onLogin }) {
           placeholder="Password"
           value={password}
           onChange={(e) =>
-            setPassword(e.target.value)
+            setPassword(
+              e.target.value
+            )
           }
           style={{
             width: "100%",
