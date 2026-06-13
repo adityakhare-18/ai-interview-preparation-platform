@@ -1,3 +1,4 @@
+import Landing from "./pages/Landing";
 import { useState, useEffect } from "react";
 
 import {
@@ -30,7 +31,7 @@ function App() {
     useState(true);
 
   const [currentPage, setCurrentPage] =
-    useState("dashboard");
+  useState("landing");
 
   const [selectedQuestion, setSelectedQuestion] =
     useState("");
@@ -214,14 +215,28 @@ function App() {
   }
 
   if (!user) {
+  if (
+    currentPage === "landing"
+  ) {
     return (
-      <Login
-        onLogin={
-          handleLogin
+      <Landing
+        openLogin={() =>
+          setCurrentPage(
+            "login"
+          )
         }
       />
     );
   }
+
+  return (
+    <Login
+      onLogin={
+        handleLogin
+      }
+    />
+  );
+}
 
   if (loading) {
     return (
