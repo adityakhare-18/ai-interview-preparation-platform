@@ -23,7 +23,6 @@ import Feedback from "./pages/Feedback";
 import Progress from "./pages/Progress";
 import MockInterview from "./pages/MockInterview";
 import History from "./pages/History";
-
 function App() {
   const [user, setUser] = useState("");
 
@@ -215,28 +214,14 @@ function App() {
   }
 
   if (!user) {
-  if (
-    currentPage === "landing"
-  ) {
     return (
-      <Landing
-        openLogin={() =>
-          setCurrentPage(
-            "login"
-          )
+      <Login
+        onLogin={
+          handleLogin
         }
       />
     );
   }
-
-  return (
-    <Login
-      onLogin={
-        handleLogin
-      }
-    />
-  );
-}
 
   if (loading) {
     return (
